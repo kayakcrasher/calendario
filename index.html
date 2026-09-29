@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1115" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Calendario" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <title>Calendario</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">☰</button>
+    <h1 id="viewTitle">Calendar</h1>
+    <div class="profiles-strip" id="profilesStrip"></div>
+  </header>
+
+  <main class="views" id="views">
+    <section class="view active" data-view="calendar"></section>
+    <section class="view" data-view="tasks"></section>
+    <section class="view" data-view="groceries"></section>
+    <section class="view" data-view="meals"></section>
+    <section class="view" data-view="profiles"></section>
+  </main>
+
+  <button class="fab" id="fabAdd" aria-label="Add">+</button>
+
+  <nav class="tabbar" id="tabbar">
+    <button class="tab active" data-tab="calendar">
+      <svg viewBox="0 0 24 24"><path d="M7 2v3M17 2v3M3.5 9h17M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>
+      <span>Calendar</span>
+    </button>
+    <button class="tab" data-tab="tasks">
+      <svg viewBox="0 0 24 24"><path d="M4 7l2 2 4-4M4 17l2 2 4-4M14 7h6M14 17h6"/></svg>
+      <span>Tasks</span>
+    </button>
+    <button class="tab" data-tab="groceries">
+      <svg viewBox="0 0 24 24"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6M10 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm8 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"/></svg>
+      <span>Groceries</span>
+    </button>
+    <button class="tab" data-tab="meals">
+      <svg viewBox="0 0 24 24"><path d="M5 3v8a3 3 0 0 0 3 3v7M8 3v8M16 3c-1.5 1.5-2 3-2 5s.5 3 2 3v10"/></svg>
+      <span>Meals</span>
+    </button>
+    <button class="tab" data-tab="profiles">
+      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>People</span>
+    </button>
+  </nav>
+
+  <div class="sheet-backdrop" id="sheetBackdrop"></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+
+  <div class="toast" id="toast"></div>
+
+  <input type="file" id="importFile" accept="application/json" style="display:none" />
+
+  <script src="db.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

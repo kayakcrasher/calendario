@@ -7,5 +7,10 @@
     "allowMixedContent": false,
     "captureInput": true,
     "webContentsDebuggingEnabled": true
+  },
+  "plugins": {
+    "MeshSync": {
+      "meshId": "com.kayakcrasher.calendario.mesh"
+    }
   }
 }
