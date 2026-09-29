@@ -1,0 +1,11 @@
+{
+  "appId": "com.kayakcrasher.calendario",
+  "appName": "Calendario",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  }
+}
