@@ -579,7 +579,8 @@ function sheetAddChooser() {
 
 function sheetMenu() {
   openSheet('<h2>Menu</h2>'
-    + '<button class="btn btn-primary" data-action="export-data">⬇️ Export backup</button>'
+    + '<button class="btn btn-primary" data-action="export-data">📤 Send to partner</button>'
+    + '<button class="btn btn-primary" data-action="import-data" style="margin-top:8px;background:var(--success)">📥 Receive from partner</button>'
     + '<button class="btn btn-primary" data-action="import-data" style="margin-top:8px;background:var(--success)">⬆️ Import backup</button>'
     + '<button class="btn btn-primary" data-action="seed-demo" style="margin-top:8px;background:#c792ea">✨ Load demo data</button>'
     + '<button class="btn btn-danger" data-action="wipe-data">🗑️ Erase everything</button>'
@@ -694,19 +695,41 @@ function calSelectDay(iso) {
 
 /* ---------- Export / Import / Wipe ---------- */
 
+const SYNC_FILENAME = "calendario-sync.json";
+
 async function exportData() {
   closeSheet();
   const payload = await DB.exportAll();
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
+  const json = JSON.stringify(payload, null, 2);
+  const file = new File([json], SYNC_FILENAME, { type: "application/json" });
+
+  // Prefer the native Android share sheet
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: "Calendario",
+        text: "Calendario sync data",
+      });
+      markSynced("sent");
+      return;
+    } catch (err) {
+      if (err && err.name === "AbortError") return;   // user cancelled — no fallback
+      console.warn("share failed, falling back to download:", err);
+    }
+  }
+
+  // Fallback: download the file
+  const url = URL.createObjectURL(file);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "calendario-" + todayISO() + ".json";
+  a.download = SYNC_FILENAME;
   document.body.appendChild(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
-  toast("Backup downloaded");
+  markSynced("saved");
+  toast("Backup saved to Downloads");
 }
 
 async function importData() {
@@ -719,12 +742,18 @@ async function importData() {
 async function handleImportFile(e) {
   const file = e.target.files?.[0];
   if (!file) return;
+  await processImportFile(file);
+}
+
+async function processImportFile(file) {
   try {
     const text = await file.text();
     const payload = JSON.parse(text);
+    if (!payload || !payload.data) throw new Error("Not a Calendario file");
     const result = await DB.importAll(payload, "merge");
     await loadAll(); render();
-    toast("Imported " + result.added + " (skipped " + result.skipped + ")");
+    markSynced("received");
+    toast("Imported " + result.added + " new · skipped " + result.skipped);
   } catch (err) {
     toast("Import failed: " + err.message);
   }
@@ -833,9 +862,78 @@ function wireButtons() {
     }
     wireButtons();
     setView("calendar");
+    renderSyncBadge();
   } catch (err) {
     console.error(err);
     const v = $('[data-view="calendar"]');
     if (v) v.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div>Could not start<br><small>' + escapeHTML(err.message) + '</small></div>';
   }
 })();
+
+/* ============================================================
+   Native Mesh Sync bridge (Android only)
+   ============================================================ */
+
+function meshSyncAvailable() {
+  return !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MeshSync);
+}
+
+async function nativeSyncNow() {
+  if (!meshSyncAvailable()) {
+    toast("Mesh Sync not available (web preview)");
+    return;
+  }
+  try {
+    const result = await window.Capacitor.Plugins.MeshSync.syncNow();
+    if (result.ok) {
+      toast("Synced · " + result.peerCount + " peer(s) connected");
+    } else {
+      toast("Sync error: " + (result.error || "unknown"));
+    }
+    await loadAll();
+    render();
+  } catch (err) {
+    toast("Sync failed: " + err.message);
+  }
+}
+
+/* ============================================================
+   Sync status tracking
+   ============================================================ */
+
+const SYNC_STATUS_KEY = "calendario.lastSync";
+
+function getSyncStatus() {
+  try { return JSON.parse(localStorage.getItem(SYNC_STATUS_KEY) || "{}"); }
+  catch { return {}; }
+}
+
+function markSynced(kind) {
+  const status = getSyncStatus();
+  status.lastAction = kind;
+  status.lastAt = new Date().toISOString();
+  localStorage.setItem(SYNC_STATUS_KEY, JSON.stringify(status));
+  renderSyncBadge();
+}
+
+function renderSyncBadge() {
+  const status = getSyncStatus();
+  const el = document.getElementById("syncBadge");
+  if (!el) return;
+  if (!status.lastAt) { el.textContent = ""; return; }
+
+  const ago = Date.now() - new Date(status.lastAt).getTime();
+  const mins = Math.floor(ago / 60000);
+  const hours = Math.floor(ago / 3600000);
+  const days = Math.floor(hours / 24);
+  const stale = days >= 1;
+
+  let label;
+  if (mins < 1) label = "just now";
+  else if (mins < 60) label = mins + "m";
+  else if (hours < 24) label = hours + "h";
+  else label = days + "d";
+
+  el.textContent = "synced " + label;
+  el.style.color = stale ? "var(--danger)" : "var(--muted)";
+}

@@ -28,13 +28,28 @@ jobs:
       - name: Install npm deps
         run: npm install
 
-      - name: Add Android platform
+      - name: Always regenerate Android project
         run: |
-          if [ ! -d "android" ]; then npx cap add android; fi
-          ls -la android/ || true
+          rm -rf android
+          npx cap add android
+          echo "=== android/ after cap add ==="
+          ls -la android/
+          echo "=== root gradle files ==="
+          ls -la android/build.gradle* 2>/dev/null || echo "no root gradle"
+          ls -la android/app/build.gradle* 2>/dev/null || echo "no app gradle"
 
-      - name: Inspect Android project
-        run: ./patch-android.sh
+      - name: Verify Gradle files exist
+        run: |
+          if [ ! -f "android/build.gradle" ] && [ ! -f "android/build.gradle.kts" ]; then
+            echo "FATAL: no root gradle file after cap add"
+            ls -la android/
+            exit 1
+          fi
+          if [ ! -f "android/app/build.gradle" ] && [ ! -f "android/app/build.gradle.kts" ]; then
+            echo "FATAL: no app gradle file after cap add"
+            ls -la android/app/
+            exit 1
+          fi
 
       - name: Sync Capacitor
         run: npx cap sync android
